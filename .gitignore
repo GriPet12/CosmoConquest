@@ -10,6 +10,7 @@ MemoryCaptures/
 
 # Visual Studio / Rider
 .vs/
+.vscode
 *.csproj
 *.sln
 *.unityproj
