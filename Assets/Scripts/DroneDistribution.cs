@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -12,6 +13,16 @@ public class DroneDistribution : MonoBehaviour
     [SerializeField] private TMP_Text errorMessage;
     [SerializeField] private Button submitButton;
 
+    private Dictionary<string, int[]> teams = new()
+    {
+        { "Команда 2", new[] { 400, 300, 200, 100, 0 } },
+        { "Команда 3", new[] { 300, 250, 250, 100, 100 } },
+        { "Команда 4", new[] { 320, 210, 210, 130, 130 } },
+        { "Команда 5", new[] { 370, 220, 180, 130, 100 } }
+    };
+
+    private Dictionary<string, int> scores = new();
+    
     void Start()
     {
         if (submitButton != null)
@@ -22,6 +33,74 @@ public class DroneDistribution : MonoBehaviour
         {
             Debug.LogError("Submit button not found!");
         }
+    }
+    void CalculateScores(int[] player)
+    {
+        teams.Add("Команда 1", player);
+        foreach (var team in teams)
+        {
+            scores[team.Key] = 0;
+        }
+
+        var teamNames = new List<string>(teams.Keys);
+
+        for (int i = 0; i < teamNames.Count; i++)
+        {
+            for (int j = i + 1; j < teamNames.Count; j++)
+            {
+                CompareTeams(teamNames[i], teamNames[j]);
+            }
+        }
+    }
+
+    void CompareTeams(string teamA, string teamB)
+    {
+        int[] dronesA = teams[teamA];
+        int[] dronesB = teams[teamB];
+
+        int winsA = 0, winsB = 0;
+
+        for (int i = 0; i < dronesA.Length; i++)
+        {
+            if (dronesA[i] > dronesB[i]) winsA++;
+            else if (dronesA[i] < dronesB[i]) winsB++;
+        }
+
+        if (winsA > winsB)
+            scores[teamA] += 2;
+        else if (winsB > winsA)
+            scores[teamB] += 2;
+        else
+        {
+            scores[teamA] += 1;
+            scores[teamB] += 1;
+        }
+    }
+
+    void DisplayResults()
+    {
+        string result = "Результати раунду:\n";
+        string winner = "";
+        int maxScore = 0;
+
+        foreach (var score in scores)
+        {
+            result += $"{score.Key}: {score.Value} балів\n";
+            if (score.Value > maxScore)
+            {
+                maxScore = score.Value;
+                winner = score.Key;
+            }
+        }
+
+        errorMessage.text = result;
+        
+        if (errorMessage.text.Contains(winner))
+        {
+            errorMessage.color = Color.green;
+        }
+
+        Debug.Log(result);
     }
 
     void ValidateInput()
@@ -56,6 +135,8 @@ public class DroneDistribution : MonoBehaviour
             return;
         }
 
-        errorMessage.text = "Distribution successful!";
+        int[] result = { kronus, lyrion, mystara, eclipsia, fiora };
+        CalculateScores(result);
+        DisplayResults();
     }
 }
