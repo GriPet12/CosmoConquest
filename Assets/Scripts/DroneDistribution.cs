@@ -144,13 +144,7 @@ public class DroneDistribution : MonoBehaviour
             return;
         }
 
-<<<<<<< HEAD
         StartCoroutine(SubmitDistribution(kronus, lyrion, mystara, eclipsia, fiora));
-=======
-        int[] result = { kronus, lyrion, mystara, eclipsia, fiora };
-        CalculateScores(result);
-        DisplayResults();
->>>>>>> ab01665ff2a1eb024b00b7a61176950abeb319d1
     }
 
     IEnumerator SubmitDistribution(int kronus, int lyrion, int mystara, int eclipsia, int fiora)
