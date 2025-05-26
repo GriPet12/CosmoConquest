@@ -134,7 +134,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      flying-saucer_0: 3035445267008982492
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

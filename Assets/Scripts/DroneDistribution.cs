@@ -8,7 +8,8 @@ using System.Collections;
 public class DroneDistribution : MonoBehaviour
 {
     [SerializeField] private DroneManager droneManager;
-
+    [SerializeField] private Main mainScript; 
+    
     [SerializeField] private TMP_InputField kronusInput;
     [SerializeField] private TMP_InputField lyrionInput;
     [SerializeField] private TMP_InputField mystaraInput;
@@ -16,16 +17,9 @@ public class DroneDistribution : MonoBehaviour
     [SerializeField] private TMP_InputField fioraInput;
     [SerializeField] private TMP_Text errorMessage;
     [SerializeField] private Button submitButton;
-
-    private Dictionary<string, int[]> teams = new()
-    {
-        { "Команда 2", new[] { 400, 300, 200, 100, 0 } },
-        { "Команда 3", new[] { 300, 250, 250, 100, 100 } },
-        { "Команда 4", new[] { 320, 210, 210, 130, 130 } },
-        { "Команда 5", new[] { 370, 220, 180, 130, 100 } }
-    };
-
-    private Dictionary<string, int> scores = new();
+    
+    private const int TotalDrones = 1000;
+    private int remainingDrones = TotalDrones;
     
     void Start()
     {
@@ -42,74 +36,41 @@ public class DroneDistribution : MonoBehaviour
         {
             Debug.LogError("DroneManager not assigned! Please assign it in the Inspector.");
         }
-    }
-    void CalculateScores(int[] player)
-    {
-        teams.Add("Команда 1", player);
-        foreach (var team in teams)
+
+        if (mainScript == null)
         {
-            scores[team.Key] = 0;
+            Debug.LogError("Main script not assigned! Please assign it in the Inspector.");
         }
 
-        var teamNames = new List<string>(teams.Keys);
+        kronusInput.onValueChanged.AddListener(delegate { CalculateRemainingDrones(); });
+        lyrionInput.onValueChanged.AddListener(delegate { CalculateRemainingDrones(); });
+        mystaraInput.onValueChanged.AddListener(delegate { CalculateRemainingDrones(); });
+        eclipsiaInput.onValueChanged.AddListener(delegate { CalculateRemainingDrones(); });
+        fioraInput.onValueChanged.AddListener(delegate { CalculateRemainingDrones(); });
 
-        for (int i = 0; i < teamNames.Count; i++)
-        {
-            for (int j = i + 1; j < teamNames.Count; j++)
-            {
-                CompareTeams(teamNames[i], teamNames[j]);
-            }
-        }
+        UpdateRemainingDronesText();
     }
 
-    void CompareTeams(string teamA, string teamB)
+    void CalculateRemainingDrones()
     {
-        int[] dronesA = teams[teamA];
-        int[] dronesB = teams[teamB];
+        int kronus = string.IsNullOrEmpty(kronusInput.text) ? 0 : int.Parse(kronusInput.text);
+        int lyrion = string.IsNullOrEmpty(lyrionInput.text) ? 0 : int.Parse(lyrionInput.text);
+        int mystara = string.IsNullOrEmpty(mystaraInput.text) ? 0 : int.Parse(mystaraInput.text);
+        int eclipsia = string.IsNullOrEmpty(eclipsiaInput.text) ? 0 : int.Parse(eclipsiaInput.text);
+        int fiora = string.IsNullOrEmpty(fioraInput.text) ? 0 : int.Parse(fioraInput.text);
 
-        int winsA = 0, winsB = 0;
-
-        for (int i = 0; i < dronesA.Length; i++)
-        {
-            if (dronesA[i] > dronesB[i]) winsA++;
-            else if (dronesA[i] < dronesB[i]) winsB++;
-        }
-
-        if (winsA > winsB)
-            scores[teamA] += 2;
-        else if (winsB > winsA)
-            scores[teamB] += 2;
-        else
-        {
-            scores[teamA] += 1;
-            scores[teamB] += 1;
-        }
+        int totalUsed = kronus + lyrion + mystara + eclipsia + fiora;
+        remainingDrones = TotalDrones - totalUsed;
+        UpdateRemainingDronesText();
     }
 
-    void DisplayResults()
+    void UpdateRemainingDronesText()
     {
-        string result = "Результати раунду:\n";
-        string winner = "";
-        int maxScore = 0;
-
-        foreach (var score in scores)
+        if (mainScript != null && mainScript.textMessage != null)
         {
-            result += $"{score.Key}: {score.Value} балів\n";
-            if (score.Value > maxScore)
-            {
-                maxScore = score.Value;
-                winner = score.Key;
-            }
+            string message = $"Enter the number of drones (remaining: {remainingDrones} / {TotalDrones})";
+            mainScript.textMessage.text = message;
         }
-
-        errorMessage.text = result;
-        
-        if (errorMessage.text.Contains(winner))
-        {
-            errorMessage.color = Color.green;
-        }
-
-        Debug.Log(result);
     }
 
     void ValidateAndSubmit()
@@ -166,7 +127,7 @@ public class DroneDistribution : MonoBehaviour
             fiora = fiora
         });
         
-        UnityWebRequest www = new UnityWebRequest("http://localhost/cosmo_conquest/submit_move.php", "POST");
+        UnityWebRequest www = new UnityWebRequest("https://cosmo-conquest-main-d99f72b06883.herokuapp.com/submit_move.php", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
@@ -184,6 +145,12 @@ public class DroneDistribution : MonoBehaviour
             if (response.status == "success")
             {
                 droneManager.DeployDrones(kronus, lyrion, mystara, eclipsia, fiora);
+                
+                if (mainScript != null)
+                {
+                    mainScript.StartCheckingResults();
+                    errorMessage.text = "Move submitted. Waiting for results...";
+                }
             }
             else if (response.error != null)
             {

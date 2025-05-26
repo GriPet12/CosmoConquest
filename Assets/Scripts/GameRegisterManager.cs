@@ -25,7 +25,7 @@ public class GameRegisterManager : MonoBehaviour
     {
         string jsonData = JsonUtility.ToJson(new UsernameWrapper { username = usernameField.text });
 
-        UnityWebRequest www = new UnityWebRequest("http://localhost/cosmo_conquest/register.php", "POST");
+        UnityWebRequest www = new UnityWebRequest("https://cosmo-conquest-main-d99f72b06883.herokuapp.com/register.php", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();

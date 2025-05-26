@@ -11,20 +11,25 @@ public class Main : MonoBehaviour
     public bool isNotEnd;
     private float timer = 0f;
     private float checkInterval = 5f;
-    [SerializeField] private TMP_Text textMessage;
+    [SerializeField] public TMP_Text textMessage;
     [SerializeField] private TMP_InputField[] inputs;
     [SerializeField] private Button[] buttons;
-    
+
+    private bool isCheckingResults = false;
+    private float resultCheckInterval = 2f;
+    private float resultCheckTimer = 0f;
+
     void Start()
     {
-        isStart = false;
+        isStart = false; // Set to true immediately
         isNotEnd = true;
-        ToggleUI(false);
+        ToggleUI(false); // Make UI elements visible right away
+
         if (timerHUD == null)
         {
             Debug.LogError("Timer HUD is not assigned in the inspector!");
         }
-        
+
         int player_id = PlayerPrefs.GetInt("player_id", -1);
         if (player_id > 0)
         {
@@ -38,11 +43,23 @@ public class Main : MonoBehaviour
         {
             if (isStart)
             {
-                timer += Time.deltaTime;
-                if (timer >= checkInterval)
+                if (isCheckingResults)
                 {
-                    timer = 0f;
-                    StartCoroutine(CheckScoreStatus());
+                    resultCheckTimer += Time.deltaTime;
+                    if (resultCheckTimer >= resultCheckInterval)
+                    {
+                        resultCheckTimer = 0f;
+                        StartCoroutine(CheckScoreStatus());
+                    }
+                }
+                else
+                {
+                    timer += Time.deltaTime;
+                    if (timer >= checkInterval)
+                    {
+                        timer = 0f;
+                        StartCoroutine(CheckScoreStatus());
+                    }
                 }
             }
             else
@@ -56,7 +73,7 @@ public class Main : MonoBehaviour
             }
         }
     }
-    
+
     public void ToggleUI(bool show)
     {
         foreach (var input in inputs)
@@ -71,13 +88,19 @@ public class Main : MonoBehaviour
             button.interactable = show;
         }
     }
-    
+
+    public void StartCheckingResults()
+    {
+        isCheckingResults = true;
+        resultCheckTimer = resultCheckInterval; // Force an immediate check
+    }
+
     IEnumerator CheckScoreStatus()
     {
         int player_id = PlayerPrefs.GetInt("player_id", -1);
         string jsonData = JsonUtility.ToJson(new PlayerIdWrapper { player_id = player_id });
 
-        UnityWebRequest www = new UnityWebRequest("http://localhost/cosmo_conquest/get_results.php", "POST");
+        UnityWebRequest www = new UnityWebRequest("https://cosmo-conquest-main-d99f72b06883.herokuapp.com/get_results.php", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
@@ -93,16 +116,17 @@ public class Main : MonoBehaviour
             if (response.status == "ok")
             {
                 isStart = false;
+                isCheckingResults = false;
                 Debug.Log("Game completed! Scores calculated.");
-                
+
                 if (response.results != null && response.results.Length > 0)
                 {
                     string scoreText = "Game Results:\n";
-                    
+
                     for (int i = 0; i < response.results.Length; i++)
                     {
                         var playerScore = response.results[i];
-        
+
                         if (i == 0)
                         {
                             scoreText += $"<color=yellow>Player {playerScore.username}: {playerScore.score} points</color>\n";
@@ -112,12 +136,16 @@ public class Main : MonoBehaviour
                             scoreText += $"Player {playerScore.username}: {playerScore.score} points\n";
                         }
                     }
-    
+
                     textMessage.text = scoreText;
                 }
 
                 ToggleUI(false);
                 isNotEnd = false;
+            }
+            else if (isCheckingResults && response.status == "waiting")
+            {
+                textMessage.text = "Waiting for other players...";
             }
         }
         else
@@ -146,7 +174,7 @@ public class Main : MonoBehaviour
         int player_id = PlayerPrefs.GetInt("player_id", -1);
         string jsonData = JsonUtility.ToJson(new PlayerIdWrapper { player_id = player_id });
 
-        UnityWebRequest www = new UnityWebRequest("http://localhost/cosmo_conquest/start_game.php", "POST");
+        UnityWebRequest www = new UnityWebRequest("https://cosmo-conquest-main-d99f72b06883.herokuapp.com/start_game.php", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
@@ -163,18 +191,18 @@ public class Main : MonoBehaviour
             {
                 isStart = true;
                 timerHUD.StopTimer();
-                VisibilityTimerController.timerState.isTimerVisible = false;
+                VisibilityTimerController.TimerState.IsTimerVisible = false;
                 textMessage.text = "Enter the number of drones, amount = 1000";
                 ToggleUI(true);
             }
         }
         else
         {
-            string errorDetails = string.IsNullOrEmpty(www.downloadHandler.text) 
-                ? www.error 
+            string errorDetails = string.IsNullOrEmpty(www.downloadHandler.text)
+                ? www.error
                 : $"{www.error}: {www.downloadHandler.text}";
             Debug.LogError($"Error checking game status: {errorDetails}");
-        
+
             if (textMessage != null)
             {
                 textMessage.text = "Server connection error. Please try again later.";

@@ -4,11 +4,11 @@ public class VisibilityTimerController : MonoBehaviour
 {
     void Update()
     {
-        gameObject.SetActive(timerState.isTimerVisible);
+        gameObject.SetActive(TimerState.IsTimerVisible);
     }
-    public static class timerState
+    public static class TimerState
     {
-        public static bool isTimerVisible = true;
+        public static bool IsTimerVisible = true;
     }
 
 }
