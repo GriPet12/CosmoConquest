@@ -21,7 +21,7 @@ public class ExitGame : MonoBehaviour
     {
         string jsonData = JsonUtility.ToJson(new PlayerIdWrapper { player_id = playerId });
     
-        UnityWebRequest www = new UnityWebRequest("http://localhost/cosmo_conquest/exit.php", "POST");
+        UnityWebRequest www = new UnityWebRequest("https://cosmo-conquest-main-d99f72b06883.herokuapp.com/exit.php", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
