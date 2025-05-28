@@ -104,6 +104,8 @@ public class DroneDistribution : MonoBehaviour
             errorMessage.text = "The amount should equal 1000.";
             return;
         }
+        
+        submitButton.interactable = false;
 
         StartCoroutine(SubmitDistribution(kronus, lyrion, mystara, eclipsia, fiora));
     }
